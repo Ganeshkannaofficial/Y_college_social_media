@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ Add this
+import { useNavigate } from 'react-router-dom'; 
 import { loginUser } from '../services/api';
 
 const Login = () => {
-  const navigate = useNavigate(); // ✅ Hook to redirect
+  const navigate = useNavigate(); 
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -17,8 +17,8 @@ const Login = () => {
     try {
       const res = await loginUser(formData);
       alert('Login successful');
-      localStorage.setItem('token', res.data.token); // Save JWT
-      navigate('/feed'); // ✅ Redirect to Feed page after login
+      sessionStorage.setItem('token', res.data.token); // Save JWT
+      navigate('/feed');
     } catch (err) {
       alert(err.response?.data?.msg || 'Login failed');
     }

@@ -22,3 +22,10 @@ export const approveUser = (userId, token) =>
   API.post(`/admin/approve-user/${userId}`, {}, {
     headers: { Authorization: `Bearer ${token}` },
   });
+
+export const addComment = (data, token) =>
+  API.post('/comments', data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const getComments = (postId) => API.get(`/comments/${postId}`);
