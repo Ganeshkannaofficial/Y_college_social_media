@@ -1,20 +1,31 @@
 const express = require('express');
 const router = express.Router();
 
-// Make sure these imports are correct
 const { authenticateUser } = require('../middleware/authMiddleware');
-const { createPost, getAllPosts, getUserPosts } = require('../controllers/postController');
+const {
+  createPost,
+  getAllPosts,
+  getUserPosts,
+  editPost,
+  deletePost,
+} = require('../controllers/postController');
 
+const {
+  createComment,
+  getCommentsByPost,
+  deleteComment,
+} = require('../controllers/commentController');
 
-module.exports = router;
-// POST /api/posts → create a new post
+// Posts
 router.post('/', authenticateUser, createPost);
-
-// GET /api/posts → get all posts
 router.get('/', getAllPosts);
-
-// GET /api/posts/me → get current user's posts
 router.get('/me', authenticateUser, getUserPosts);
+router.put('/:id', authenticateUser, editPost);
+router.delete('/:id', authenticateUser, deletePost);
 
+// Comments
+router.post('/:postId/comment', authenticateUser, createComment);
+router.get('/:postId/comment', getCommentsByPost);
+router.delete('/:postId/comment/:commentId', authenticateUser, deleteComment);
 
 module.exports = router;

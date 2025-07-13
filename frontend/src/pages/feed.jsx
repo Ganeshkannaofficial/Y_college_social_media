@@ -9,11 +9,12 @@ const Feed = () => {
   const [commentInputs, setCommentInputs] = useState({});
   const [commentsMap, setCommentsMap] = useState({});
   const [showComments, setShowComments] = useState({});
-  const [newPost, setNewPost] = useState(''); // New post content
+  const [newPost, setNewPost] = useState('');
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editedPostContent, setEditedPostContent] = useState('');
 
   const token = sessionStorage.getItem('token');
 
-  // Fetch logged-in user info (name, id, role)
   useEffect(() => {
     const fetchUser = async () => {
       if (!token) return;
@@ -85,6 +86,48 @@ const Feed = () => {
     }
   };
 
+  const handleDeletePost = async (postId) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/posts/${postId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchPosts();
+    } catch (err) {
+      console.error('Delete post failed:', err);
+    }
+  };
+
+  const handleEditPost = (post) => {
+    setEditingPostId(post.id);
+    setEditedPostContent(post.content);
+  };
+
+  const handleSavePostEdit = async (postId) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/api/posts/${postId}`,
+        { content: editedPostContent },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setEditingPostId(null);
+      setEditedPostContent('');
+      fetchPosts();
+    } catch (err) {
+      console.error('Edit post failed:', err);
+    }
+  };
+
+  const handleDeleteComment = async (postId, commentId) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/posts/${postId}/comment/${commentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchComments(postId);
+    } catch (err) {
+      console.error('Failed to delete comment:', err);
+    }
+  };
+
   const toggleComments = (postId) => {
     const current = showComments[postId] || false;
     setShowComments((prev) => ({
@@ -96,6 +139,14 @@ const Feed = () => {
       fetchComments(postId);
     }
   };
+
+  const canEditOrDeletePost = (postUserId) =>
+    user && (user.id === postUserId || user.role === 'faculty' || user.role === 'admin');
+
+  const canEditPost = (postUserId) => user && user.id === postUserId;
+
+  const canDeleteComment = (commentUserId) =>
+    user && (user.id === commentUserId || user.role === 'faculty' || user.role === 'admin');
 
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto', padding: '20px' }}>
@@ -129,7 +180,28 @@ const Feed = () => {
           >
             <strong>{post.name}</strong>{' '}
             <em>{new Date(post.created_at).toLocaleString()}</em>
-            <p>{post.content}</p>
+
+            {editingPostId === post.id ? (
+              <>
+                <textarea
+                  value={editedPostContent}
+                  onChange={(e) => setEditedPostContent(e.target.value)}
+                  rows={2}
+                  style={{ width: '100%', marginTop: '5px' }}
+                />
+                <button onClick={() => handleSavePostEdit(post.id)}>Save</button>
+                <button onClick={() => setEditingPostId(null)}>Cancel</button>
+              </>
+            ) : (
+              <p>{post.content}</p>
+            )}
+
+            {canEditPost(post.user_id) && (
+              <button onClick={() => handleEditPost(post)}>Edit</button>
+            )}
+            {canEditOrDeletePost(post.user_id) && (
+              <button onClick={() => handleDeletePost(post.id)}>Delete</button>
+            )}
 
             <button onClick={() => toggleComments(post.id)}>
               {showComments[post.id] ? 'Hide Comments' : 'View Comments'}
@@ -142,6 +214,14 @@ const Feed = () => {
                   {(commentsMap[post.id] || []).map((comment) => (
                     <div key={comment.id} style={{ fontSize: '0.9em' }}>
                       <em>{comment.name}</em>: {comment.content}
+                      {canDeleteComment(comment.user_id) && (
+                        <button
+                          onClick={() => handleDeleteComment(post.id, comment.id)}
+                          style={{ marginLeft: '10px', color: 'red' }}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

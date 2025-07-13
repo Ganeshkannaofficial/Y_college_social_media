@@ -2,19 +2,11 @@ const pool = require('../db');
 
 exports.createComment = async (req, res) => {
   const { post_id, content } = req.body;
+  const user_id = req.user?.id;
 
-  // Debugging logs
-  console.log('Received post_id:', post_id);
-  console.log('Received content:', content);
-  console.log('Decoded user from token:', req.user);
-
-  // Check if token was missing or invalid
-  if (!req.user || !req.user.id) {
-    console.error("No valid user found from token");
-    return res.status(401).json({ msg: "Unauthorized - No valid user" });
+  if (!user_id || !content) {
+    return res.status(400).json({ msg: 'Missing content or user' });
   }
-
-  const user_id = req.user.id;
 
   try {
     const result = await pool.query(
@@ -42,6 +34,31 @@ exports.getCommentsByPost = async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching comments:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+exports.deleteComment = async (req, res) => {
+  const { postId, commentId } = req.params;
+  const user = req.user;
+
+  try {
+    const result = await pool.query('SELECT * FROM comments WHERE id = $1 AND post_id = $2', [
+      commentId,
+      postId,
+    ]);
+
+    if (result.rows.length === 0) return res.status(404).json({ msg: 'Comment not found' });
+
+    const comment = result.rows[0];
+
+    if (comment.user_id !== user.id && user.role !== 'faculty' && user.role !== 'admin')
+      return res.status(403).json({ msg: 'Unauthorized to delete this comment' });
+
+    await pool.query('DELETE FROM comments WHERE id = $1', [commentId]);
+    res.json({ msg: 'Comment deleted' });
+  } catch (err) {
+    console.error('Error deleting comment:', err);
     res.status(500).json({ msg: 'Server error' });
   }
 };
