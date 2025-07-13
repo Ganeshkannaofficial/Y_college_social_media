@@ -4,14 +4,16 @@ import { addComment, getComments } from '../services/api';
 
 const Feed = () => {
   const [userName, setUserName] = useState('');
+  const [user, setUser] = useState(null); // Store full user info
   const [posts, setPosts] = useState([]);
   const [commentInputs, setCommentInputs] = useState({});
   const [commentsMap, setCommentsMap] = useState({});
-  const [showComments, setShowComments] = useState({}); // postId: true/false
+  const [showComments, setShowComments] = useState({});
+  const [newPost, setNewPost] = useState(''); // New post content
 
   const token = sessionStorage.getItem('token');
 
-  // Fetch logged-in user info (name)
+  // Fetch logged-in user info (name, id, role)
   useEffect(() => {
     const fetchUser = async () => {
       if (!token) return;
@@ -20,6 +22,7 @@ const Feed = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUserName(res.data.name);
+        setUser(res.data);
       } catch (err) {
         console.error('Failed to fetch user info', err);
       }
@@ -27,7 +30,6 @@ const Feed = () => {
     fetchUser();
   }, [token]);
 
-  // Fetch posts
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -67,6 +69,22 @@ const Feed = () => {
     }
   };
 
+  const handleCreatePost = async (e) => {
+    e.preventDefault();
+    if (!newPost.trim()) return;
+    try {
+      await axios.post(
+        'http://localhost:5000/api/posts',
+        { content: newPost },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setNewPost('');
+      fetchPosts();
+    } catch (err) {
+      alert('Failed to create post');
+    }
+  };
+
   const toggleComments = (postId) => {
     const current = showComments[postId] || false;
     setShowComments((prev) => ({
@@ -75,7 +93,7 @@ const Feed = () => {
     }));
 
     if (!current) {
-      fetchComments(postId); // only fetch when opening
+      fetchComments(postId);
     }
   };
 
@@ -84,6 +102,20 @@ const Feed = () => {
       <header style={{ padding: '10px', borderBottom: '1px solid #ccc', marginBottom: '20px' }}>
         <strong>Welcome, {userName || 'User'}!</strong>
       </header>
+
+      {/* New Post Form */}
+      <form onSubmit={handleCreatePost} style={{ marginBottom: '30px' }}>
+        <textarea
+          value={newPost}
+          onChange={(e) => setNewPost(e.target.value)}
+          placeholder="What's on your mind?"
+          rows={3}
+          style={{ width: '100%', padding: '8px', resize: 'vertical' }}
+        />
+        <button type="submit" style={{ marginTop: '8px', padding: '8px 16px' }}>
+          Post
+        </button>
+      </form>
 
       <h2>Feed</h2>
 
