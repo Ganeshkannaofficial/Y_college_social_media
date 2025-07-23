@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { addComment, getComments } from '../services/api';
+import { addComment, getComments, reactToPost } from '../services/api';
+import './Feed.css';
 
 const Feed = () => {
   const [userName, setUserName] = useState('');
-  const [user, setUser] = useState(null); // Store full user info
+  const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [commentInputs, setCommentInputs] = useState({});
   const [commentsMap, setCommentsMap] = useState({});
@@ -15,6 +16,7 @@ const Feed = () => {
 
   const token = sessionStorage.getItem('token');
 
+  // Fetch logged-in user info
   useEffect(() => {
     const fetchUser = async () => {
       if (!token) return;
@@ -31,6 +33,7 @@ const Feed = () => {
     fetchUser();
   }, [token]);
 
+  // Fetch all posts
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -40,7 +43,7 @@ const Feed = () => {
       const res = await axios.get('http://localhost:5000/api/posts');
       setPosts(res.data);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch posts:', err);
     }
   };
 
@@ -65,7 +68,7 @@ const Feed = () => {
       setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
       fetchComments(postId);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to post comment:', err);
       alert('Failed to post comment');
     }
   };
@@ -148,76 +151,131 @@ const Feed = () => {
   const canDeleteComment = (commentUserId) =>
     user && (user.id === commentUserId || user.role === 'faculty' || user.role === 'admin');
 
+  const handleLogout = () => {
+    sessionStorage.clear();
+    window.location.href = '/';
+  };
+
+  // Reaction handler
+  const handleReact = async (postId, reactionType) => {
+  if (!token) {
+    alert('Please login to react.');
+    return;
+  }
+
+  try {
+    console.log(`Sending reaction ${reactionType} for post ${postId}`);
+    
+    // Send reaction to backend
+    await reactToPost(postId, reactionType, token);
+    
+    // After reaction success, fetch fresh posts with updated counts
+    await fetchPosts();
+
+  } catch (err) {
+    console.error('Failed to react:', err.response?.data || err.message);
+    alert('Failed to register reaction. Please try again.');
+  }
+};
+
   return (
-    <div style={{ maxWidth: '700px', margin: '0 auto', padding: '20px' }}>
-      <header style={{ padding: '10px', borderBottom: '1px solid #ccc', marginBottom: '20px' }}>
-        <strong>Welcome, {userName || 'User'}!</strong>
+    <div className="feed-container">
+      <header className="feed-header">
+        <div className="feed-header-row">
+          <strong>Welcome, {userName || 'User'}!</strong>
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
       </header>
 
-      {/* New Post Form */}
-      <form onSubmit={handleCreatePost} style={{ marginBottom: '30px' }}>
+      {/* New Post */}
+      <form onSubmit={handleCreatePost} className="post-form">
         <textarea
           value={newPost}
           onChange={(e) => setNewPost(e.target.value)}
           placeholder="What's on your mind?"
           rows={3}
-          style={{ width: '100%', padding: '8px', resize: 'vertical' }}
         />
-        <button type="submit" style={{ marginTop: '8px', padding: '8px 16px' }}>
-          Post
-        </button>
+        <button type="submit">Post</button>
       </form>
 
-      <h2>Feed</h2>
+      <h2 className="feed-title">Feed</h2>
 
       {posts.length === 0 ? (
         <p>No posts yet.</p>
       ) : (
         posts.map((post) => (
-          <div
-            key={post.id}
-            style={{ borderBottom: '1px solid #ccc', padding: '15px 0' }}
-          >
-            <strong>{post.name}</strong>{' '}
-            <em>{new Date(post.created_at).toLocaleString()}</em>
+          <div key={post.id} className="post-card">
+            <div className="post-header">
+              <strong>{post.name}</strong>{' '}
+              <em>{new Date(post.created_at).toLocaleString()}</em>
+            </div>
 
             {editingPostId === post.id ? (
               <>
                 <textarea
                   value={editedPostContent}
                   onChange={(e) => setEditedPostContent(e.target.value)}
-                  rows={2}
-                  style={{ width: '100%', marginTop: '5px' }}
                 />
-                <button onClick={() => handleSavePostEdit(post.id)}>Save</button>
-                <button onClick={() => setEditingPostId(null)}>Cancel</button>
+                <div className="post-actions">
+                  <button onClick={() => handleSavePostEdit(post.id)}>Save</button>
+                  <button onClick={() => setEditingPostId(null)}>Cancel</button>
+                </div>
               </>
             ) : (
               <p>{post.content}</p>
             )}
 
-            {canEditPost(post.user_id) && (
-              <button onClick={() => handleEditPost(post)}>Edit</button>
-            )}
-            {canEditOrDeletePost(post.user_id) && (
-              <button onClick={() => handleDeletePost(post.id)}>Delete</button>
-            )}
+            <div className="reaction-buttons">
+              <button
+                onClick={() => handleReact(post.id, 'like')}
+                className="reaction-btn"
+                aria-label="Like"
+                type="button"
+              >
+                👍 {post.like_count || 0}
+              </button>
+              <button
+                onClick={() => handleReact(post.id, 'heart')}
+                className="reaction-btn"
+                aria-label="Heart"
+                type="button"
+              >
+                ❤️ {post.heart_count || 0}
+              </button>
+              <button
+                onClick={() => handleReact(post.id, 'dislike')}
+                className="reaction-btn"
+                aria-label="Dislike"
+                type="button"
+              >
+                👎 {post.dislike_count || 0}
+              </button>
+            </div>
 
-            <button onClick={() => toggleComments(post.id)}>
-              {showComments[post.id] ? 'Hide Comments' : 'View Comments'}
-            </button>
+            <div className="post-actions">
+              {canEditPost(post.user_id) && <button onClick={() => handleEditPost(post)}>Edit</button>}
+              {canEditOrDeletePost(post.user_id) && (
+                <button className="delete-btn" onClick={() => handleDeletePost(post.id)}>
+                  Delete
+                </button>
+              )}
+              <button onClick={() => toggleComments(post.id)}>
+                {showComments[post.id] ? 'Hide Comments' : 'View Comments'}
+              </button>
+            </div>
 
             {showComments[post.id] && (
               <>
-                <div style={{ marginTop: '10px', marginLeft: '10px' }}>
-                  <strong>Comments:</strong>
+                <div className="comment-section">
                   {(commentsMap[post.id] || []).map((comment) => (
-                    <div key={comment.id} style={{ fontSize: '0.9em' }}>
+                    <div key={comment.id} className="comment">
                       <em>{comment.name}</em>: {comment.content}
                       {canDeleteComment(comment.user_id) && (
                         <button
+                          className="delete-comment-btn"
                           onClick={() => handleDeleteComment(post.id, comment.id)}
-                          style={{ marginLeft: '10px', color: 'red' }}
                         >
                           Delete
                         </button>
@@ -226,7 +284,7 @@ const Feed = () => {
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', marginTop: '10px' }}>
+                <div className="comment-input">
                   <input
                     type="text"
                     placeholder="Write a comment..."
@@ -237,14 +295,8 @@ const Feed = () => {
                         [post.id]: e.target.value,
                       })
                     }
-                    style={{ flex: 1, padding: '6px' }}
                   />
-                  <button
-                    onClick={() => handlePostComment(post.id)}
-                    style={{ marginLeft: '5px' }}
-                  >
-                    Comment
-                  </button>
+                  <button onClick={() => handlePostComment(post.id)}>Comment</button>
                 </div>
               </>
             )}

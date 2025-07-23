@@ -1,0 +1,108 @@
+/* OfficialFeed.css */
+
+.official-feed-container {
+  max-width: 700px;
+  margin: 20px auto;
+  padding: 0 20px 40px;
+  font-family: Arial, sans-serif;
+  color: #333;
+}
+
+.official-feed-container h2 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.post {
+  border-bottom: 1px solid #ccc;
+  padding: 15px 0;
+}
+
+.post strong {
+  font-size: 1.1rem;
+  color: #2980b9;
+}
+
+.post em {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  margin-left: 10px;
+}
+
+.post p {
+  margin: 10px 0 15px;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.toggle-comments-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-comments-btn:hover {
+  background-color: #2980b9;
+}
+
+.comments-section {
+  margin-top: 10px;
+  margin-left: 10px;
+}
+
+.comment {
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  border-left: 3px solid #3498db;
+  padding-left: 10px;
+  color: #555;
+}
+
+.comment em {
+  font-style: normal;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-right: 6px;
+}
+
+.comment-input-container {
+  display: flex;
+  margin-top: 10px;
+}
+
+.comment-input-container input[type="text"] {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.comment-input-container button {
+  margin-left: 8px;
+  padding: 8px 15px;
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+
+.comment-input-container button:hover {
+  background-color: #1e8449;
+}
+
+.no-posts-message {
+  text-align: center;
+  font-style: italic;
+  color: #7f8c8d;
+  margin-top: 20px;
+}

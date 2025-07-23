@@ -22,6 +22,10 @@ app.use('/api/comments', commentRoutes);
 const userRoutes = require('./routes/user');
 app.use('/api/user', userRoutes);
 
+const postsRouter = require('./routes/post');
+app.use('/api/posts', postsRouter);
+
+
 const pool = require('./db');
 
 pool.query('SELECT NOW()', (err, res) => {

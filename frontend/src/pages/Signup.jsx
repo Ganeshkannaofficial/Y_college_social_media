@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { signupUser } from '../services/api';
+import './Signup.css';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -35,28 +36,51 @@ const Signup = () => {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: 'auto', padding: '2rem' }}>
+    <div className="signup-container">
       <h2>Signup</h2>
-      {message && <p style={{ color: 'green' }}>{message}</p>}
+      {message && <p>{message}</p>}
       <form onSubmit={handleSubmit}>
         <input
           type="text"
           name="name"
-          placeholder="Full Name"
+          placeholder="Full Name / Club Name"
           value={formData.name}
           onChange={handleChange}
           required
-          style={{ display: 'block', margin: '10px 0', width: '100%' }}
         />
-        <input
-          type="text"
-          name="roll_no"
-          placeholder="Roll Number"
-          value={formData.roll_no}
-          onChange={handleChange}
-          required
-          style={{ display: 'block', margin: '10px 0', width: '100%' }}
-        />
+
+        {/* ID Field changes based on role */}
+        {formData.role === 'student' && (
+          <input
+            type="text"
+            name="roll_no"
+            placeholder="Roll Number"
+            value={formData.roll_no}
+            onChange={handleChange}
+            required
+          />
+        )}
+        {formData.role === 'faculty' && (
+          <input
+            type="text"
+            name="roll_no"
+            placeholder="Staff ID"
+            value={formData.roll_no}
+            onChange={handleChange}
+            required
+          />
+        )}
+        {formData.role === 'club' && (
+          <input
+            type="text"
+            name="roll_no"
+            placeholder="Club Short Code (e.g., NSS001)"
+            value={formData.roll_no}
+            onChange={handleChange}
+            required
+          />
+        )}
+
         <input
           type="email"
           name="email"
@@ -64,7 +88,6 @@ const Signup = () => {
           value={formData.email}
           onChange={handleChange}
           required
-          style={{ display: 'block', margin: '10px 0', width: '100%' }}
         />
         <input
           type="password"
@@ -73,20 +96,19 @@ const Signup = () => {
           value={formData.password}
           onChange={handleChange}
           required
-          style={{ display: 'block', margin: '10px 0', width: '100%' }}
         />
+
         <select
           name="role"
           value={formData.role}
           onChange={handleChange}
-          style={{ display: 'block', margin: '10px 0', width: '100%' }}
         >
           <option value="student">Student</option>
           <option value="faculty">Faculty</option>
+          <option value="club">Club</option>
         </select>
-        <button type="submit" style={{ padding: '10px 20px' }}>
-          Signup
-        </button>
+
+        <button type="submit">Signup</button>
       </form>
     </div>
   );

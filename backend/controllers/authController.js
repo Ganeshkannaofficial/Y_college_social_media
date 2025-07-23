@@ -7,16 +7,25 @@ exports.signup = async (req, res) => {
   const { name, roll_no, email, role, password } = req.body;
 
   try {
-    console.log('Received signup:', req.body);  // See exactly what you're receiving
+    console.log('Received signup:', req.body);
 
+    // Validate allowed roles
+    if (!['student', 'faculty', 'club'].includes(role)) {
+      return res.status(400).json({ msg: 'Invalid role provided' });
+    }
+
+    if (!name || !email || !password || !roll_no) {
+      return res.status(400).json({ msg: 'Missing required fields' });
+    }
+
+    // Check for existing user with same email or roll_no (identifier)
     const userExists = await pool.query(
-      'SELECT * FROM users WHERE email=$1 OR roll_no=$2',
+      'SELECT * FROM users WHERE email = $1 OR roll_no = $2',
       [email, roll_no]
     );
 
     if (userExists.rows.length > 0) {
-      console.log('User already exists.');
-      return res.status(400).json({ msg: 'User already exists' });
+      return res.status(400).json({ msg: 'User with same email or ID already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -30,10 +39,11 @@ exports.signup = async (req, res) => {
     res.status(200).json({ msg: 'Signup successful. Wait for admin approval.' });
 
   } catch (err) {
-    console.error('Signup error:', err);  // ← THIS will print the real error
-    res.status(500).json({ msg: 'Server error during signup' });
+    console.error('Signup error:', err);
+    res.status(500).json({ msg: 'Server error during signup', error: err.message });
   }
 };
+
 
 
 // Admin Login

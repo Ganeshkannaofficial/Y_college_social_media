@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import { loginUser } from '../services/api';
+import './Login.css';
 
 const Login = () => {
   const navigate = useNavigate(); 
@@ -18,14 +19,14 @@ const Login = () => {
       const res = await loginUser(formData);
       alert('Login successful');
       sessionStorage.setItem('token', res.data.token); // Save JWT
-      navigate('/feed');
+      navigate('/Homepage');
     } catch (err) {
       alert(err.response?.data?.msg || 'Login failed');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form className="login-form" onSubmit={handleSubmit}>
       <h2>Student/Faculty Login</h2>
       <input
         type="email"
