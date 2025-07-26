@@ -13,6 +13,7 @@ const Feed = () => {
   const [newPost, setNewPost] = useState('');
   const [editingPostId, setEditingPostId] = useState(null);
   const [editedPostContent, setEditedPostContent] = useState('');
+  const [userReactions, setUserReactions] = useState({});
 
   const token = sessionStorage.getItem('token');
 
@@ -40,8 +41,16 @@ const Feed = () => {
 
   const fetchPosts = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/posts');
+      const res = await axios.get('http://localhost:5000/api/posts', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setPosts(res.data);
+
+      const reactionMap = {};
+      res.data.forEach(post => {
+        reactionMap[post.id] = post.user_reaction || null;
+      });
+      setUserReactions(reactionMap);
     } catch (err) {
       console.error('Failed to fetch posts:', err);
     }
@@ -156,36 +165,40 @@ const Feed = () => {
     window.location.href = '/';
   };
 
-  // Reaction handler
-  const handleReact = async (postId, reactionType) => {
+  // Reaction handler with toggle support
+ const handleReact = async (postId, reactionType) => {
   if (!token) {
     alert('Please login to react.');
     return;
   }
 
-  try {
-    console.log(`Sending reaction ${reactionType} for post ${postId}`);
-    
-    // Send reaction to backend
-    await reactToPost(postId, reactionType, token);
-    
-    // After reaction success, fetch fresh posts with updated counts
-    await fetchPosts();
+  const currentReaction = userReactions[postId];
 
+  try {
+    if (currentReaction === reactionType) {
+      // User clicked the same emoji again → unreact
+      await reactToPost(postId, null, token); // send null to backend to remove
+      setUserReactions((prev) => ({ ...prev, [postId]: null }));
+    } else {
+      // New or different reaction
+      await reactToPost(postId, reactionType, token);
+      setUserReactions((prev) => ({ ...prev, [postId]: reactionType }));
+    }
+
+    fetchPosts(); // refresh counts
   } catch (err) {
     console.error('Failed to react:', err.response?.data || err.message);
     alert('Failed to register reaction. Please try again.');
   }
 };
 
+
   return (
     <div className="feed-container">
       <header className="feed-header">
         <div className="feed-header-row">
           <strong>Welcome, {userName || 'User'}!</strong>
-          <button className="logout-btn" onClick={handleLogout}>
-            Logout
-          </button>
+          <button className="logout-btn" onClick={handleLogout}>Logout</button>
         </div>
       </header>
 
@@ -227,39 +240,33 @@ const Feed = () => {
               <p>{post.content}</p>
             )}
 
+            {/* Reaction Buttons */}
             <div className="reaction-buttons">
-              <button
-                onClick={() => handleReact(post.id, 'like')}
-                className="reaction-btn"
-                aria-label="Like"
-                type="button"
-              >
-                👍 {post.like_count || 0}
-              </button>
-              <button
-                onClick={() => handleReact(post.id, 'heart')}
-                className="reaction-btn"
-                aria-label="Heart"
-                type="button"
-              >
-                ❤️ {post.heart_count || 0}
-              </button>
-              <button
-                onClick={() => handleReact(post.id, 'dislike')}
-                className="reaction-btn"
-                aria-label="Dislike"
-                type="button"
-              >
-                👎 {post.dislike_count || 0}
-              </button>
-            </div>
+                <button
+                  onClick={() => handleReact(post.id, 'like')}
+                  className={`reaction-btn ${userReactions[post.id] === 'like' ? 'selected like' : ''}`}
+                >
+                  👍 {post.like_count || 0}
+                </button>
+                <button
+                  onClick={() => handleReact(post.id, 'heart')}
+                  className={`reaction-btn ${userReactions[post.id] === 'heart' ? 'selected heart' : ''}`}
+                >
+                  ❤️ {post.heart_count || 0}
+                </button>
+                <button
+                  onClick={() => handleReact(post.id, 'dislike')}
+                  className={`reaction-btn ${userReactions[post.id] === 'dislike' ? 'selected dislike' : ''}`}
+                >
+                  👎 {post.dislike_count || 0}
+                </button>
+              </div>
+
 
             <div className="post-actions">
               {canEditPost(post.user_id) && <button onClick={() => handleEditPost(post)}>Edit</button>}
               {canEditOrDeletePost(post.user_id) && (
-                <button className="delete-btn" onClick={() => handleDeletePost(post.id)}>
-                  Delete
-                </button>
+                <button className="delete-btn" onClick={() => handleDeletePost(post.id)}>Delete</button>
               )}
               <button onClick={() => toggleComments(post.id)}>
                 {showComments[post.id] ? 'Hide Comments' : 'View Comments'}

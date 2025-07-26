@@ -146,24 +146,37 @@ exports.getOfficialPosts = async (req, res) => {
 exports.reactToPost = async (req, res) => {
   const userId = req.user.id;
   const postId = parseInt(req.params.postId);
-  const { reaction } = req.body;
+  const { reaction } = req.body; // e.g., 'like', 'heart', 'dislike'
 
   console.log('Reacting to post:', { postId, userId, reaction });
 
   try {
-    // Insert or update user reaction for the post
+    // Check if the user has already reacted to this post
     const existing = await pool.query(
-      'SELECT * FROM post_reactions WHERE post_id = $1 AND user_id = $2',
+      'SELECT reaction FROM post_reactions WHERE post_id = $1 AND user_id = $2',
       [postId, userId]
     );
 
     if (existing.rows.length > 0) {
-      await pool.query(
-        'UPDATE post_reactions SET reaction = $1 WHERE post_id = $2 AND user_id = $3',
-        [reaction, postId, userId]
-      );
-      console.log('Updated existing reaction');
+      const previousReaction = existing.rows[0].reaction;
+
+      if (previousReaction === reaction) {
+        // Same reaction clicked again -> UNREACT
+        await pool.query(
+          'DELETE FROM post_reactions WHERE post_id = $1 AND user_id = $2',
+          [postId, userId]
+        );
+        console.log('Removed user reaction');
+      } else {
+        // Change to different reaction -> UPDATE
+        await pool.query(
+          'UPDATE post_reactions SET reaction = $1 WHERE post_id = $2 AND user_id = $3',
+          [reaction, postId, userId]
+        );
+        console.log('Updated user reaction');
+      }
     } else {
+      // First-time reaction -> INSERT
       await pool.query(
         'INSERT INTO post_reactions (post_id, user_id, reaction) VALUES ($1, $2, $3)',
         [postId, userId, reaction]
@@ -171,31 +184,41 @@ exports.reactToPost = async (req, res) => {
       console.log('Inserted new reaction');
     }
 
-    // Recalculate counts for the post
+    // Recalculate all reaction counts for this post
     const countsResult = await pool.query(
       `SELECT
-         SUM(CASE WHEN reaction = 'like' THEN 1 ELSE 0 END) AS like_count,
-         SUM(CASE WHEN reaction = 'heart' THEN 1 ELSE 0 END) AS heart_count,
-         SUM(CASE WHEN reaction = 'dislike' THEN 1 ELSE 0 END) AS dislike_count
+         COUNT(*) FILTER (WHERE reaction = 'like') AS like_count,
+         COUNT(*) FILTER (WHERE reaction = 'heart') AS heart_count,
+         COUNT(*) FILTER (WHERE reaction = 'dislike') AS dislike_count
        FROM post_reactions
        WHERE post_id = $1`,
       [postId]
     );
 
-    const { like_count, heart_count, dislike_count } = countsResult.rows[0];
+    const {
+      like_count = 0,
+      heart_count = 0,
+      dislike_count = 0,
+    } = countsResult.rows[0];
 
-    // Update posts table with new counts
+    // Update the post table with new reaction counts
     await pool.query(
       `UPDATE posts SET like_count = $1, heart_count = $2, dislike_count = $3 WHERE id = $4`,
-      [like_count || 0, heart_count || 0, dislike_count || 0, postId]
+      [like_count, heart_count, dislike_count, postId]
     );
 
-    res.status(200).json({ message: 'Reaction registered successfully' });
+    res.status(200).json({
+      message: 'Reaction processed successfully',
+      userReaction: reaction,
+      counts: { like_count, heart_count, dislike_count },
+    });
   } catch (error) {
     console.error('Error in reactToPost:', error.message, error.stack);
-    res.status(500).json({ message: 'Failed to register reaction' });
+    res.status(500).json({ message: 'Failed to process reaction' });
   }
 };
+
+
 
 
 

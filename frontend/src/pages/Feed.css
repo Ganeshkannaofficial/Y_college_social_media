@@ -120,14 +120,38 @@
   gap: 12px;
   margin-bottom: 10px;
 }
-
 .reaction-btn {
-  padding: 4px 8px;
-  background: #eee;
-  border: none;
-  border-radius: 5px;
+  background-color: #f3f4f6;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  margin-right: 8px;
+  border-radius: 6px;
   cursor: pointer;
+  transition: background-color 0.2s ease;
 }
+
+.reaction-btn.selected.like {
+  background-color: #dbeafe; 
+  color: #1d4ed8;
+  font-weight: bold;
+  border: 2px solid #3b82f6;
+}
+
+.reaction-btn.selected.heart {
+  background-color: #fce7f3;
+  color: #db2777;
+  font-weight: bold;
+  border: 2px solid #ec4899;
+}
+
+.reaction-btn.selected.dislike {
+  background-color: #fef3c7;
+  color: #ca8a04;
+  font-weight: bold;
+  border: 2px solid #facc15;
+}
+
+
 
 .reaction-btn:hover {
   background-color: #ddd;
