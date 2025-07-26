@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { addComment, getComments } from '../services/api';
+import { addComment, getComments, reactToPost } from '../services/api'; // add reactToPost import
 import './Profile.css';
 
 const Profile = () => {
@@ -9,6 +9,7 @@ const Profile = () => {
   const [commentInputs, setCommentInputs] = useState({});
   const [commentsMap, setCommentsMap] = useState({});
   const [showComments, setShowComments] = useState({});
+  const [userReactions, setUserReactions] = useState({});
   const token = sessionStorage.getItem('token');
 
   useEffect(() => {
@@ -36,6 +37,13 @@ const Profile = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPosts(res.data);
+
+      // Map user reactions for quick access and styling
+      const reactionMap = {};
+      res.data.forEach(post => {
+        reactionMap[post.id] = post.user_reaction || null;
+      });
+      setUserReactions(reactionMap);
     } catch (err) {
       console.error(err);
     }
@@ -79,6 +87,32 @@ const Profile = () => {
     }
   };
 
+  // Reaction handler with toggle support
+  const handleReact = async (postId, reactionType) => {
+    if (!token) {
+      alert('Please login to react.');
+      return;
+    }
+
+    const currentReaction = userReactions[postId];
+
+    try {
+      if (currentReaction === reactionType) {
+        // User clicked same reaction again → unreact (send null or special value)
+        await reactToPost(postId, null, token);
+        setUserReactions((prev) => ({ ...prev, [postId]: null }));
+      } else {
+        // New or different reaction
+        await reactToPost(postId, reactionType, token);
+        setUserReactions((prev) => ({ ...prev, [postId]: reactionType }));
+      }
+      fetchUserPosts(); // Refresh posts to update counts
+    } catch (err) {
+      console.error('Failed to react:', err.response?.data || err.message);
+      alert('Failed to register reaction. Please try again.');
+    }
+  };
+
   return (
     <div className="profile-container">
       <h2>Your Posts</h2>
@@ -91,6 +125,28 @@ const Profile = () => {
           <div key={post.id} className="post">
             <em>{new Date(post.created_at).toLocaleString()}</em>
             <p>{post.content}</p>
+
+            {/* Reaction Buttons */}
+            <div className="reaction-buttons">
+              <button
+                onClick={() => handleReact(post.id, 'like')}
+                className={`reaction-btn ${userReactions[post.id] === 'like' ? 'selected like' : ''}`}
+              >
+                👍 {post.like_count || 0}
+              </button>
+              <button
+                onClick={() => handleReact(post.id, 'heart')}
+                className={`reaction-btn ${userReactions[post.id] === 'heart' ? 'selected heart' : ''}`}
+              >
+                ❤️ {post.heart_count || 0}
+              </button>
+              <button
+                onClick={() => handleReact(post.id, 'dislike')}
+                className={`reaction-btn ${userReactions[post.id] === 'dislike' ? 'selected dislike' : ''}`}
+              >
+                👎 {post.dislike_count || 0}
+              </button>
+            </div>
 
             <button
               className="toggle-comments-btn"

@@ -84,7 +84,7 @@ const OfficialFeed = () => {
 
  return (
   <div className="official-feed-container">
-    <h2>Official Feed (Faculty & Clubs)</h2>
+    {/* <h2>Official Feed (Faculty & Clubs)</h2> */}
     {posts.length === 0 ? (
       <p className="no-posts-message">No official posts yet.</p>
     ) : (

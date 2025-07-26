@@ -17,7 +17,6 @@ const Feed = () => {
 
   const token = sessionStorage.getItem('token');
 
-  // Fetch logged-in user info
   useEffect(() => {
     const fetchUser = async () => {
       if (!token) return;
@@ -34,7 +33,6 @@ const Feed = () => {
     fetchUser();
   }, [token]);
 
-  // Fetch all posts
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -45,7 +43,6 @@ const Feed = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPosts(res.data);
-
       const reactionMap = {};
       res.data.forEach(post => {
         reactionMap[post.id] = post.user_reaction || null;
@@ -71,7 +68,6 @@ const Feed = () => {
   const handlePostComment = async (postId) => {
     const content = commentInputs[postId];
     if (!content?.trim()) return;
-
     try {
       await addComment({ post_id: postId, content }, token);
       setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
@@ -146,7 +142,6 @@ const Feed = () => {
       ...prev,
       [postId]: !current,
     }));
-
     if (!current) {
       fetchComments(postId);
     }
@@ -160,49 +155,38 @@ const Feed = () => {
   const canDeleteComment = (commentUserId) =>
     user && (user.id === commentUserId || user.role === 'faculty' || user.role === 'admin');
 
-  const handleLogout = () => {
-    sessionStorage.clear();
-    window.location.href = '/';
-  };
-
-  // Reaction handler with toggle support
- const handleReact = async (postId, reactionType) => {
-  if (!token) {
-    alert('Please login to react.');
-    return;
-  }
-
-  const currentReaction = userReactions[postId];
-
-  try {
-    if (currentReaction === reactionType) {
-      // User clicked the same emoji again → unreact
-      await reactToPost(postId, null, token); // send null to backend to remove
-      setUserReactions((prev) => ({ ...prev, [postId]: null }));
-    } else {
-      // New or different reaction
-      await reactToPost(postId, reactionType, token);
-      setUserReactions((prev) => ({ ...prev, [postId]: reactionType }));
+  const handleReact = async (postId, reactionType) => {
+    if (!token) {
+      alert('Please login to react.');
+      return;
     }
 
-    fetchPosts(); // refresh counts
-  } catch (err) {
-    console.error('Failed to react:', err.response?.data || err.message);
-    alert('Failed to register reaction. Please try again.');
-  }
-};
+    const currentReaction = userReactions[postId];
 
+    try {
+      if (currentReaction === reactionType) {
+        await reactToPost(postId, null, token);
+        setUserReactions((prev) => ({ ...prev, [postId]: null }));
+      } else {
+        await reactToPost(postId, reactionType, token);
+        setUserReactions((prev) => ({ ...prev, [postId]: reactionType }));
+      }
+
+      fetchPosts();
+    } catch (err) {
+      console.error('Failed to react:', err.response?.data || err.message);
+      alert('Failed to register reaction. Please try again.');
+    }
+  };
 
   return (
     <div className="feed-container">
       <header className="feed-header">
         <div className="feed-header-row">
           <strong>Welcome, {userName || 'User'}!</strong>
-          <button className="logout-btn" onClick={handleLogout}>Logout</button>
         </div>
       </header>
 
-      {/* New Post */}
       <form onSubmit={handleCreatePost} className="post-form">
         <textarea
           value={newPost}
@@ -213,7 +197,8 @@ const Feed = () => {
         <button type="submit">Post</button>
       </form>
 
-      <h2 className="feed-title">Feed</h2>
+      {/* <h2 className="feed-title">Feed</h2> */}
+      <br></br>
 
       {posts.length === 0 ? (
         <p>No posts yet.</p>
@@ -240,28 +225,26 @@ const Feed = () => {
               <p>{post.content}</p>
             )}
 
-            {/* Reaction Buttons */}
             <div className="reaction-buttons">
-                <button
-                  onClick={() => handleReact(post.id, 'like')}
-                  className={`reaction-btn ${userReactions[post.id] === 'like' ? 'selected like' : ''}`}
-                >
-                  👍 {post.like_count || 0}
-                </button>
-                <button
-                  onClick={() => handleReact(post.id, 'heart')}
-                  className={`reaction-btn ${userReactions[post.id] === 'heart' ? 'selected heart' : ''}`}
-                >
-                  ❤️ {post.heart_count || 0}
-                </button>
-                <button
-                  onClick={() => handleReact(post.id, 'dislike')}
-                  className={`reaction-btn ${userReactions[post.id] === 'dislike' ? 'selected dislike' : ''}`}
-                >
-                  👎 {post.dislike_count || 0}
-                </button>
-              </div>
-
+              <button
+                onClick={() => handleReact(post.id, 'like')}
+                className={`reaction-btn ${userReactions[post.id] === 'like' ? 'selected like' : ''}`}
+              >
+                👍 {post.like_count || 0}
+              </button>
+              <button
+                onClick={() => handleReact(post.id, 'heart')}
+                className={`reaction-btn ${userReactions[post.id] === 'heart' ? 'selected heart' : ''}`}
+              >
+                ❤️ {post.heart_count || 0}
+              </button>
+              <button
+                onClick={() => handleReact(post.id, 'dislike')}
+                className={`reaction-btn ${userReactions[post.id] === 'dislike' ? 'selected dislike' : ''}`}
+              >
+                👎 {post.dislike_count || 0}
+              </button>
+            </div>
 
             <div className="post-actions">
               {canEditPost(post.user_id) && <button onClick={() => handleEditPost(post)}>Edit</button>}
